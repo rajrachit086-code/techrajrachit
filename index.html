@@ -10,9 +10,11 @@ background:black;
 color:#00ff00;
 font-family:monospace;
 padding:20px;
+margin:0;
 }
 .terminal{
-width:500px;
+width:90%;
+max-width:500px;
 margin:auto;
 border:2px solid #00ff00;
 padding:20px;
@@ -37,6 +39,7 @@ color:#00ff00;
 button:hover{
 background:#00ff00;
 color:black;
+cursor:pointer;
 }
 </style>
 
@@ -90,16 +93,29 @@ function generateHWID(){
 
 function copyHWID(){
  let hwid = generateHWID();
- navigator.clipboard.writeText(hwid);
+
+ let temp = document.createElement("input");
+ temp.value = hwid;
+ document.body.appendChild(temp);
+ temp.select();
+ document.execCommand("copy");
+ document.body.removeChild(temp);
+
  log("> HWID COPIED: " + hwid);
 }
 
 function checkKey(){
 
- let key = document.getElementById("keyInput").value;
+ let key = document.getElementById("keyInput").value.trim();
+
+ if(!key){
+   log("> ENTER A KEY FIRST");
+   return;
+ }
+
  let currentHWID = generateHWID();
 
- db.ref("keys/" + key).once("value",(snap)=>{
+ db.ref("keys/" + key).once("value").then((snap)=>{
 
    if(snap.exists()){
 
@@ -130,10 +146,18 @@ function checkKey(){
       log("> ACCESS GRANTED");
       log("> EXPIRES: " + data.expiry);
 
+      // Close Android popup after success
+      if(typeof Android !== "undefined"){
+         Android.close();
+      }
+
    }else{
       log("> INVALID KEY");
    }
 
+ }).catch((err)=>{
+    log("> FIREBASE ERROR");
+    log("> " + err.message);
  });
 
 }
