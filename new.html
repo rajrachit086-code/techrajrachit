@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>User Terminal</title>
+
+<style>
+body{
+background:black;
+color:#00ff00;
+font-family:monospace;
+padding:20px;
+}
+.terminal{
+width:500px;
+margin:auto;
+border:2px solid #00ff00;
+padding:20px;
+background:#050505;
+box-shadow:0 0 20px #00ff00;
+}
+.logs{
+height:250px;
+overflow-y:auto;
+border:1px solid #00ff00;
+padding:10px;
+margin-top:20px;
+}
+input,button{
+width:100%;
+padding:10px;
+margin-top:10px;
+background:black;
+border:1px solid #00ff00;
+color:#00ff00;
+}
+button:hover{
+background:#00ff00;
+color:black;
+}
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+</head>
+<body>
+
+<div class="terminal">
+
+<h2>root@system:~ ACCESS TERMINAL</h2>
+
+<input type="text" id="keyInput" placeholder="ENTER KEY">
+
+<button onclick="checkKey()">LOGIN</button>
+<button onclick="copyHWID()">COPY HWID</button>
+
+<div class="logs" id="logs">
+> System booting...<br>
+> Waiting for key...<br>
+</div>
+
+</div>
+
+<script>
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCAoMB2gvsQe1Oq6LGluR2IfjjszyOPWi8",
+  authDomain: "rajrachitkey.firebaseapp.com",
+  databaseURL: "https://rajrachitkey-default-rtdb.firebaseio.com",
+  projectId: "rajrachitkey",
+  storageBucket: "rajrachitkey.firebasestorage.app",
+  messagingSenderId: "268912386787",
+  appId: "1:268912386787:android:f133237e00536af442dbd6"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+function generateHWID(){
+ let raw =
+ navigator.userAgent +
+ navigator.platform +
+ screen.width +
+ screen.height +
+ navigator.language;
+
+ return btoa(raw).substring(0,25);
+}
+
+function copyHWID(){
+ let hwid = generateHWID();
+ navigator.clipboard.writeText(hwid);
+ log("> HWID COPIED: " + hwid);
+}
+
+function checkKey(){
+
+ let key = document.getElementById("keyInput").value;
+ let currentHWID = generateHWID();
+
+ db.ref("keys/" + key).once("value",(snap)=>{
+
+   if(snap.exists()){
+
+      let data = snap.val();
+      let now = new Date();
+      let expiry = new Date(data.expiry);
+
+      if(data.status !== "active"){
+         log("> KEY DISABLED");
+         return;
+      }
+
+      if(now > expiry){
+         log("> KEY EXPIRED");
+         return;
+      }
+
+      if(data.hwid && data.hwid !== currentHWID){
+         log("> HWID MISMATCH");
+         return;
+      }
+
+      if(!data.hwid){
+         db.ref("keys/" + key + "/hwid").set(currentHWID);
+         log("> HWID BOUND: " + currentHWID);
+      }
+
+      log("> ACCESS GRANTED");
+      log("> EXPIRES: " + data.expiry);
+
+   }else{
+      log("> INVALID KEY");
+   }
+
+ });
+
+}
+
+function log(msg){
+ let logs = document.getElementById("logs");
+ logs.innerHTML += msg + "<br>";
+ logs.scrollTop = logs.scrollHeight;
+}
+
+</script>
+
+</body>
+</html>
